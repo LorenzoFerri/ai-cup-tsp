@@ -1,5 +1,9 @@
 #include <iostream>
 #include <fstream>
+#include <cstring>
+#include <cstdlib>
+#include <csignal>
+#include <sys/wait.h>
 
 using namespace std;
 
@@ -8,7 +12,7 @@ int main(int argc, char * argv[]){
 		cout<<"Usage: ./seed {tour.tsp}"<<endl;
 		abort();
 	}
-	char last_string[50], best_string[50];
+	char last_string[50] = {}, best_string[50] = {};
 	FILE * last;
 	FILE * best;
 	bool first = false;
@@ -20,7 +24,7 @@ int main(int argc, char * argv[]){
 	strcat(best_string,".tour.best");
 	strcat(last_string,argv[1]);
 	strcat(last_string,".tour.last");
-	char command[150];
+	char command[150] = {};
 
 	best = fopen(best_string,"r");
 	if(best == NULL){
@@ -34,7 +38,7 @@ int main(int argc, char * argv[]){
 			sscanf(line, "result: %d", &best_result);
 		}
 	}
-	fclose(best);
+	if(best != NULL) fclose(best);
 
 	strcat(command, "./tsp ");
 	strcat(command, argv[1]);
@@ -44,9 +48,15 @@ int main(int argc, char * argv[]){
 	strcat(command, " 2> ");
 	strcat(command, argv[1]);
 	strcat(command, ".tour.last");
-	cout<<"Press CTRL + Z to terminate seeding\n";
+	cout<<"Press CTRL + C to terminate seeding\n";
 	while(true){
-		system(command);
+		int status = system(command);
+		if(status == -1 || (WIFSIGNALED(status) &&
+		   (WTERMSIG(status) == SIGINT || WTERMSIG(status) == SIGQUIT))) break;
+		if(!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+			cerr << "Solver failed" << endl;
+			return 1;
+		}
 		last = fopen(last_string,"r");
 		char line[80];
 		while(fgets(line,80,last)){
