@@ -1,0 +1,5 @@
+/tsp
+*.tour
+*.tour.best
+*.tour.last
+.DS_Store
